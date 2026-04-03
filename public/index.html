@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Metro Soundboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Metro Soundboard</h1>
+    <p class="subtitle">Tap a city, pick a line, select a station, and hear the announcements.</p>
+  </header>
+
+  <main>
+    <section id="city-picker" class="picker">
+      <h2>Select a City</h2>
+      <div id="city-buttons" class="button-row"></div>
+    </section>
+
+    <section id="line-picker" class="picker hidden">
+      <h2 id="line-picker-title">Select a Line</h2>
+      <div id="line-buttons" class="button-row"></div>
+      <button class="back-btn" id="back-to-cities">Back to Cities</button>
+    </section>
+
+    <section id="station-view" class="hidden">
+      <h2 id="station-view-title"></h2>
+      <button class="back-btn" id="back-to-lines">Back to Lines</button>
+      <div id="line-diagram" class="line-diagram-container"></div>
+    </section>
+
+    <section id="audio-panel" class="hidden">
+      <h2 id="audio-station-name"></h2>
+      <div id="audio-buttons" class="audio-buttons"></div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Uses your browser's speech synthesis. Best in Chrome/Edge.</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

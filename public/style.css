@@ -1,0 +1,312 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #1a1a2e;
+  color: #eee;
+  min-height: 100vh;
+}
+
+header {
+  text-align: center;
+  padding: 2rem 1rem 1rem;
+}
+
+header h1 {
+  font-size: 2rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.subtitle {
+  color: #888;
+  margin-top: 0.5rem;
+  font-size: 0.95rem;
+}
+
+main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.picker {
+  margin-bottom: 2rem;
+}
+
+.picker h2 {
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.city-btn, .line-btn {
+  padding: 0.85rem 1.5rem;
+  border: 2px solid #333;
+  border-radius: 8px;
+  background: #16213e;
+  color: #eee;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.city-btn:hover {
+  background: #0f3460;
+  border-color: #555;
+  transform: translateY(-2px);
+}
+
+.line-btn {
+  font-weight: 700;
+  border: none;
+  min-width: 140px;
+  text-align: center;
+}
+
+.line-btn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.15);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.back-btn {
+  display: inline-block;
+  margin: 0.75rem 0;
+  padding: 0.4rem 1rem;
+  background: none;
+  border: 1px solid #555;
+  border-radius: 4px;
+  color: #aaa;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
+
+.back-btn:hover {
+  border-color: #eee;
+  color: #eee;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* --- Line Diagram --- */
+
+.line-diagram-container {
+  margin-top: 1.5rem;
+  overflow-x: auto;
+  padding-bottom: 1rem;
+}
+
+.line-diagram {
+  display: flex;
+  align-items: flex-start;
+  min-width: max-content;
+  padding: 2rem 1rem;
+  position: relative;
+}
+
+.line-track {
+  position: absolute;
+  top: 2.95rem;
+  left: 1rem;
+  right: 1rem;
+  height: 6px;
+  border-radius: 3px;
+  z-index: 0;
+}
+
+.station-stop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 90px;
+  flex-shrink: 0;
+  cursor: pointer;
+  z-index: 1;
+  position: relative;
+}
+
+.station-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  background: #1a1a2e;
+  transition: all 0.2s;
+  margin-bottom: 0.5rem;
+}
+
+.station-stop:hover .station-dot,
+.station-stop.active .station-dot {
+  transform: scale(1.4);
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.5);
+}
+
+.station-stop.active .station-dot {
+  background: #fff;
+}
+
+.station-name {
+  font-size: 0.7rem;
+  text-align: center;
+  color: #bbb;
+  line-height: 1.2;
+  max-width: 85px;
+  word-wrap: break-word;
+  transition: color 0.2s;
+}
+
+.station-stop:hover .station-name,
+.station-stop.active .station-name {
+  color: #fff;
+  font-weight: 600;
+}
+
+/* --- Audio Panel --- */
+
+#audio-panel {
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  background: #16213e;
+  border-radius: 12px;
+  border: 1px solid #333;
+}
+
+#audio-panel h2 {
+  margin-bottom: 1rem;
+  font-size: 1.3rem;
+}
+
+.audio-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.audio-btn {
+  padding: 0.75rem 1.25rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+}
+
+.audio-btn .icon {
+  font-size: 1.2rem;
+}
+
+.audio-btn.now-arriving {
+  background: #0f3460;
+  color: #4cc9f0;
+  border: 1px solid #4cc9f0;
+}
+
+.audio-btn.now-at {
+  background: #1a472a;
+  color: #72efdd;
+  border: 1px solid #72efdd;
+}
+
+.audio-btn.next-station {
+  background: #3d1f00;
+  color: #f4a261;
+  border: 1px solid #f4a261;
+}
+
+.audio-btn.doors {
+  background: #2d0a3e;
+  color: #c77dff;
+  border: 1px solid #c77dff;
+}
+
+.audio-btn.transfer {
+  background: #3d0a0a;
+  color: #ff6b6b;
+  border: 1px solid #ff6b6b;
+}
+
+.audio-btn.terminus {
+  background: #3d3d00;
+  color: #f0e68c;
+  border: 1px solid #f0e68c;
+}
+
+.audio-btn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.audio-btn.playing {
+  animation: pulse 0.6s ease-in-out infinite alternate;
+}
+
+@keyframes pulse {
+  from { box-shadow: 0 0 5px rgba(255, 255, 255, 0.1); }
+  to { box-shadow: 0 0 20px rgba(255, 255, 255, 0.3); }
+}
+
+/* --- Scrollbar --- */
+
+.line-diagram-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.line-diagram-container::-webkit-scrollbar-track {
+  background: #111;
+  border-radius: 4px;
+}
+
+.line-diagram-container::-webkit-scrollbar-thumb {
+  background: #444;
+  border-radius: 4px;
+}
+
+footer {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: #555;
+  font-size: 0.8rem;
+}
+
+/* --- Responsive --- */
+
+@media (max-width: 600px) {
+  header h1 {
+    font-size: 1.4rem;
+  }
+
+  .station-stop {
+    width: 70px;
+  }
+
+  .station-name {
+    font-size: 0.6rem;
+    max-width: 65px;
+  }
+
+  .audio-btn {
+    font-size: 0.8rem;
+    padding: 0.6rem 1rem;
+  }
+}

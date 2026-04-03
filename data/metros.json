@@ -1,0 +1,444 @@
+{
+  "cities": [
+    {
+      "name": "Washington, D.C.",
+      "system": "WMATA Metro",
+      "lines": [
+        {
+          "name": "Red Line",
+          "color": "#BF0D3E",
+          "textColor": "#ffffff",
+          "stations": [
+            "Shady Grove", "Rockville", "Twinbrook", "North Bethesda",
+            "Grosvenor-Strathmore", "Medical Center", "Bethesda",
+            "Friendship Heights", "Tenleytown-AU", "Van Ness-UDC",
+            "Cleveland Park", "Woodley Park", "Dupont Circle",
+            "Farragut North", "Metro Center", "Gallery Place-Chinatown",
+            "Judiciary Square", "Union Station", "NoMa-Gallaudet U",
+            "Rhode Island Ave", "Brookland-CUA", "Fort Totten",
+            "Takoma", "Silver Spring", "Forest Glen", "Wheaton", "Glenmont"
+          ]
+        },
+        {
+          "name": "Blue Line",
+          "color": "#009CDE",
+          "textColor": "#ffffff",
+          "stations": [
+            "Franconia-Springfield", "Van Dorn Street", "King Street-Old Town",
+            "Braddock Road", "Ronald Reagan Washington National Airport",
+            "Crystal City", "Pentagon City", "Pentagon",
+            "Arlington Cemetery", "Rosslyn", "Foggy Bottom-GWU",
+            "Farragut West", "McPherson Square", "Metro Center",
+            "Federal Triangle", "Smithsonian", "L'Enfant Plaza",
+            "Federal Center SW", "Capitol South", "Eastern Market",
+            "Potomac Ave", "Stadium-Armory", "Benning Road",
+            "Capitol Heights", "Addison Road", "Morgan Boulevard",
+            "Downtown Largo"
+          ]
+        },
+        {
+          "name": "Orange Line",
+          "color": "#ED8B00",
+          "textColor": "#000000",
+          "stations": [
+            "Vienna", "Dunn Loring", "West Falls Church",
+            "East Falls Church", "Ballston-MU", "Virginia Square-GMU",
+            "Clarendon", "Court House", "Rosslyn",
+            "Foggy Bottom-GWU", "Farragut West", "McPherson Square",
+            "Metro Center", "Federal Triangle", "Smithsonian",
+            "L'Enfant Plaza", "Federal Center SW", "Capitol South",
+            "Eastern Market", "Potomac Ave", "Stadium-Armory",
+            "Minnesota Ave", "Deanwood", "Cheverly",
+            "Landover", "New Carrollton"
+          ]
+        },
+        {
+          "name": "Silver Line",
+          "color": "#919D9D",
+          "textColor": "#000000",
+          "stations": [
+            "Ashburn", "Loudoun Gateway", "Washington Dulles International Airport",
+            "Innovation Center", "Herndon", "Reston Town Center",
+            "Wiehle-Reston East", "Spring Hill", "Greensboro",
+            "Tysons", "McLean", "East Falls Church",
+            "Ballston-MU", "Virginia Square-GMU", "Clarendon",
+            "Court House", "Rosslyn", "Foggy Bottom-GWU",
+            "Farragut West", "McPherson Square", "Metro Center",
+            "Federal Triangle", "Smithsonian", "L'Enfant Plaza",
+            "Federal Center SW", "Capitol South", "Eastern Market",
+            "Potomac Ave", "Stadium-Armory", "Minnesota Ave",
+            "Deanwood", "Cheverly", "Landover", "New Carrollton",
+            "Downtown Largo"
+          ]
+        },
+        {
+          "name": "Green Line",
+          "color": "#00B140",
+          "textColor": "#ffffff",
+          "stations": [
+            "Branch Ave", "Suitland", "Naylor Road",
+            "Southern Ave", "Congress Heights", "Anacostia",
+            "Navy Yard-Ballpark", "Waterfront", "L'Enfant Plaza",
+            "Archives", "Gallery Place-Chinatown", "Mt Vernon Square",
+            "Shaw-Howard U", "U Street", "Columbia Heights",
+            "Georgia Ave-Petworth", "Fort Totten", "West Hyattsville",
+            "Hyattsville Crossing", "College Park-U of Md",
+            "Greenbelt"
+          ]
+        },
+        {
+          "name": "Yellow Line",
+          "color": "#FFD100",
+          "textColor": "#000000",
+          "stations": [
+            "Huntington", "Eisenhower Ave",
+            "King Street-Old Town", "Braddock Road",
+            "Ronald Reagan Washington National Airport",
+            "Crystal City", "Pentagon City", "Pentagon",
+            "L'Enfant Plaza", "Archives",
+            "Gallery Place-Chinatown", "Mt Vernon Square"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Chicago",
+      "system": "CTA 'L'",
+      "lines": [
+        {
+          "name": "Red Line",
+          "color": "#C60C30",
+          "textColor": "#ffffff",
+          "stations": [
+            "Howard", "Jarvis", "Morse", "Loyola", "Granville",
+            "Thorndale", "Bryn Mawr", "Berwyn", "Argyle",
+            "Lawrence", "Wilson", "Sheridan", "Addison",
+            "Belmont", "Fullerton", "North/Clybourn", "Clark/Division",
+            "Chicago", "Grand", "Lake", "Monroe", "Jackson",
+            "Harrison", "Roosevelt", "Cermak-Chinatown", "Sox-35th",
+            "47th", "Garfield", "63rd", "69th", "79th",
+            "87th", "95th/Dan Ryan"
+          ]
+        },
+        {
+          "name": "Blue Line",
+          "color": "#00A1DE",
+          "textColor": "#ffffff",
+          "stations": [
+            "O'Hare", "Rosemont", "Cumberland", "Harlem",
+            "Jefferson Park", "Montrose", "Irving Park",
+            "Addison", "Belmont", "Logan Square", "California",
+            "Western", "Damen", "Division", "Chicago",
+            "Grand", "Clark/Lake", "Washington", "Monroe",
+            "Jackson", "LaSalle", "Clinton", "UIC-Halsted",
+            "Racine", "Illinois Medical District", "Western",
+            "Kedzie-Homan", "Pulaski", "Cicero", "Austin",
+            "Oak Park", "Harlem", "Forest Park"
+          ]
+        },
+        {
+          "name": "Brown Line",
+          "color": "#62361B",
+          "textColor": "#ffffff",
+          "stations": [
+            "Kimball", "Kedzie", "Francisco", "Rockwell",
+            "Western", "Damen", "Montrose", "Irving Park",
+            "Addison", "Paulina", "Southport", "Belmont",
+            "Wellington", "Diversey", "Fullerton", "Armitage",
+            "Sedgwick", "Chicago", "Merchandise Mart",
+            "Washington/Wabash", "Adams/Wabash", "Harold Washington Library",
+            "LaSalle/Van Buren", "Quincy", "Washington/Wells"
+          ]
+        },
+        {
+          "name": "Green Line",
+          "color": "#009B3A",
+          "textColor": "#ffffff",
+          "stations": [
+            "Harlem/Lake", "Oak Park", "Ridgeland", "Austin",
+            "Central", "Laramie", "Cicero", "Pulaski",
+            "Conservatory", "Kedzie", "California", "Ashland",
+            "Morgan", "Clinton", "Clark/Lake", "State/Lake",
+            "Washington/Wabash", "Adams/Wabash", "Roosevelt",
+            "Cermak-McCormick Place", "35th-Bronzeville-IIT",
+            "Indiana", "43rd", "47th", "51st", "Garfield",
+            "Halsted", "Ashland/63rd", "King Drive",
+            "Cottage Grove"
+          ]
+        },
+        {
+          "name": "Orange Line",
+          "color": "#F9461C",
+          "textColor": "#ffffff",
+          "stations": [
+            "Midway", "Pulaski", "Kedzie", "Western",
+            "35th/Archer", "Ashland", "Halsted",
+            "Roosevelt", "Harold Washington Library",
+            "LaSalle/Van Buren", "Quincy", "Washington/Wells",
+            "Clark/Lake", "State/Lake", "Washington/Wabash",
+            "Adams/Wabash"
+          ]
+        },
+        {
+          "name": "Pink Line",
+          "color": "#E27EA6",
+          "textColor": "#000000",
+          "stations": [
+            "54th/Cermak", "Cicero", "Kostner", "Pulaski",
+            "Central Park", "Kedzie", "California",
+            "Western", "Damen", "18th", "Polk",
+            "Ashland", "Morgan", "Clinton",
+            "Clark/Lake", "State/Lake", "Washington/Wabash",
+            "Adams/Wabash", "Harold Washington Library",
+            "LaSalle/Van Buren", "Quincy", "Washington/Wells"
+          ]
+        },
+        {
+          "name": "Purple Line",
+          "color": "#522398",
+          "textColor": "#ffffff",
+          "stations": [
+            "Linden", "Central", "Noyes", "Foster",
+            "Davis", "Dempster", "Main", "South Boulevard",
+            "Howard"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "New York City",
+      "system": "MTA Subway",
+      "lines": [
+        {
+          "name": "1 Line",
+          "color": "#EE352E",
+          "textColor": "#ffffff",
+          "stations": [
+            "Van Cortlandt Park-242 St", "238 St", "231 St",
+            "Marble Hill-225 St", "215 St", "207 St", "Dyckman St",
+            "191 St", "181 St", "168 St", "157 St",
+            "145 St", "137 St-City College", "125 St",
+            "116 St-Columbia University", "Cathedral Pkwy-110 St",
+            "103 St", "96 St", "86 St", "79 St",
+            "72 St", "66 St-Lincoln Center", "59 St-Columbus Circle",
+            "50 St", "Times Sq-42 St", "34 St-Penn Station",
+            "28 St", "23 St", "18 St", "14 St",
+            "Christopher St-Sheridan Sq", "Houston St",
+            "Canal St", "Franklin St", "Chambers St",
+            "Cortlandt St", "Rector St", "South Ferry"
+          ]
+        },
+        {
+          "name": "7 Line",
+          "color": "#B933AD",
+          "textColor": "#ffffff",
+          "stations": [
+            "Flushing-Main St", "Mets-Willets Point",
+            "111 St", "103 St-Corona Plaza", "Junction Blvd",
+            "90 St-Elmhurst Ave", "82 St-Jackson Hts",
+            "74 St-Broadway", "69 St", "61 St-Woodside",
+            "52 St", "46 St-Bliss St", "40 St-Lowery St",
+            "33 St-Rawson St", "Queensboro Plaza",
+            "Court Sq", "Hunters Point Ave",
+            "Vernon Blvd-Jackson Ave", "Grand Central-42 St",
+            "Times Sq-42 St", "34 St-Hudson Yards"
+          ]
+        },
+        {
+          "name": "A Line",
+          "color": "#0039A6",
+          "textColor": "#ffffff",
+          "stations": [
+            "Inwood-207 St", "Dyckman St", "190 St",
+            "181 St", "175 St", "168 St", "145 St",
+            "125 St", "59 St-Columbus Circle",
+            "42 St-Port Authority", "34 St-Penn Station",
+            "14 St", "West 4 St-Washington Sq",
+            "Spring St", "Canal St", "Fulton St",
+            "Chambers St", "High St",
+            "Jay St-MetroTech", "Hoyt-Schermerhorn Sts",
+            "Nostrand Ave", "Kingston-Throop Aves",
+            "Utica Ave", "Ralph Ave", "Rockaway Blvd",
+            "Howard Beach-JFK Airport"
+          ]
+        },
+        {
+          "name": "L Line",
+          "color": "#A7A9AC",
+          "textColor": "#000000",
+          "stations": [
+            "8 Ave", "6 Ave", "Union Sq-14 St",
+            "3 Ave", "1 Ave", "Bedford Ave",
+            "Lorimer St", "Graham Ave", "Grand St",
+            "Montrose Ave", "Morgan Ave", "Jefferson St",
+            "DeKalb Ave", "Myrtle-Wyckoff Aves",
+            "Halsey St", "Wilson Ave", "Bushwick Ave-Aberdeen St",
+            "Broadway Junction", "Atlantic Ave",
+            "Sutter Ave", "Livonia Ave", "New Lots Ave",
+            "East 105 St", "Canarsie-Rockaway Pkwy"
+          ]
+        },
+        {
+          "name": "6 Line",
+          "color": "#00933C",
+          "textColor": "#ffffff",
+          "stations": [
+            "Pelham Bay Park", "Buhre Ave", "Middletown Rd",
+            "Westchester Sq-E Tremont Ave", "Zerega Ave",
+            "Castle Hill Ave", "Parkchester", "St Lawrence Ave",
+            "Morrison Ave-Soundview", "Elder Ave", "Whitlock Ave",
+            "Hunts Point Ave", "Longwood Ave", "E 149 St",
+            "E 143 St-St Mary's St", "Cypress Ave",
+            "Brook Ave", "3 Ave-138 St", "125 St",
+            "116 St", "110 St", "103 St", "96 St",
+            "86 St", "77 St", "68 St-Hunter College",
+            "Lexington Ave-59 St", "51 St", "Grand Central-42 St",
+            "33 St", "28 St", "23 St", "Astor Place",
+            "Bleecker St", "Spring St", "Canal St",
+            "Brooklyn Bridge-City Hall"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Atlanta",
+      "system": "MARTA",
+      "lines": [
+        {
+          "name": "Red Line",
+          "color": "#CE242B",
+          "textColor": "#ffffff",
+          "stations": [
+            "North Springs", "Sandy Springs", "Dunwoody",
+            "Medical Center", "Buckhead", "Lindbergh Center",
+            "Arts Center", "Midtown", "North Ave",
+            "Civic Center", "Peachtree Center", "Five Points",
+            "Garnett", "West End", "Oakland City",
+            "Lakewood/Ft. McPherson", "East Point",
+            "College Park", "Airport"
+          ]
+        },
+        {
+          "name": "Gold Line",
+          "color": "#D4A723",
+          "textColor": "#000000",
+          "stations": [
+            "Doraville", "Chamblee", "Brookhaven/Oglethorpe",
+            "Lenox", "Lindbergh Center", "Arts Center",
+            "Midtown", "North Ave", "Civic Center",
+            "Peachtree Center", "Five Points", "Garnett",
+            "West End", "Oakland City",
+            "Lakewood/Ft. McPherson", "East Point",
+            "College Park", "Airport"
+          ]
+        },
+        {
+          "name": "Blue Line",
+          "color": "#009FDA",
+          "textColor": "#ffffff",
+          "stations": [
+            "Hamilton E. Holmes", "West Lake",
+            "Ashby", "Vine City", "GWCC/CNN Center",
+            "Five Points", "Georgia State", "King Memorial",
+            "Inman Park/Reynoldstown", "Edgewood/Candler Park",
+            "East Lake", "Decatur", "Avondale",
+            "Kensington", "Indian Creek"
+          ]
+        },
+        {
+          "name": "Green Line",
+          "color": "#009A44",
+          "textColor": "#ffffff",
+          "stations": [
+            "Bankhead", "Ashby", "Vine City",
+            "GWCC/CNN Center", "Five Points",
+            "Georgia State", "King Memorial",
+            "Inman Park/Reynoldstown", "Edgewood/Candler Park"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "San Francisco",
+      "system": "BART",
+      "lines": [
+        {
+          "name": "Red Line",
+          "color": "#ED1C24",
+          "textColor": "#ffffff",
+          "stations": [
+            "Richmond", "El Cerrito del Norte", "El Cerrito Plaza",
+            "North Berkeley", "Downtown Berkeley", "Ashby",
+            "MacArthur", "19th St/Oakland", "12th St/Oakland City Center",
+            "West Oakland", "Embarcadero", "Montgomery St",
+            "Powell St", "Civic Center/UN Plaza", "16th St Mission",
+            "24th St Mission", "Glen Park", "Balboa Park",
+            "Daly City", "Colma", "South San Francisco",
+            "San Bruno", "Millbrae"
+          ]
+        },
+        {
+          "name": "Yellow Line",
+          "color": "#FFB81C",
+          "textColor": "#000000",
+          "stations": [
+            "Antioch", "Pittsburg Center", "Pittsburg/Bay Point",
+            "Concord", "Pleasant Hill/Contra Costa Centre",
+            "Walnut Creek", "Lafayette", "Orinda", "Rockridge",
+            "MacArthur", "19th St/Oakland", "12th St/Oakland City Center",
+            "West Oakland", "Embarcadero", "Montgomery St",
+            "Powell St", "Civic Center/UN Plaza", "16th St Mission",
+            "24th St Mission", "Glen Park", "Balboa Park",
+            "Daly City", "Colma", "South San Francisco",
+            "San Bruno", "SFO Airport", "Millbrae"
+          ]
+        },
+        {
+          "name": "Blue Line",
+          "color": "#0099D8",
+          "textColor": "#ffffff",
+          "stations": [
+            "Dublin/Pleasanton", "West Dublin/Pleasanton",
+            "Castro Valley", "Bay Fair", "San Leandro",
+            "Coliseum", "Fruitvale", "Lake Merritt",
+            "West Oakland", "Embarcadero", "Montgomery St",
+            "Powell St", "Civic Center/UN Plaza", "16th St Mission",
+            "24th St Mission", "Glen Park", "Balboa Park",
+            "Daly City"
+          ]
+        },
+        {
+          "name": "Green Line",
+          "color": "#4DB848",
+          "textColor": "#ffffff",
+          "stations": [
+            "Berryessa/North San Jose", "Milpitas",
+            "Warm Springs/South Fremont", "Fremont",
+            "Union City", "South Hayward", "Hayward",
+            "Bay Fair", "San Leandro", "Coliseum",
+            "Fruitvale", "Lake Merritt",
+            "West Oakland", "Embarcadero", "Montgomery St",
+            "Powell St", "Civic Center/UN Plaza", "16th St Mission",
+            "24th St Mission", "Glen Park", "Balboa Park",
+            "Daly City"
+          ]
+        },
+        {
+          "name": "Orange Line",
+          "color": "#F58220",
+          "textColor": "#000000",
+          "stations": [
+            "Richmond", "El Cerrito del Norte", "El Cerrito Plaza",
+            "North Berkeley", "Downtown Berkeley", "Ashby",
+            "MacArthur", "19th St/Oakland", "12th St/Oakland City Center",
+            "Lake Merritt", "Fruitvale", "Coliseum",
+            "San Leandro", "Bay Fair", "Hayward",
+            "South Hayward", "Union City", "Fremont",
+            "Warm Springs/South Fremont", "Milpitas",
+            "Berryessa/North San Jose"
+          ]
+        }
+      ]
+    }
+  ]
+}
