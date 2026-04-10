@@ -788,6 +788,11 @@ export default function App() {
           {cityIdx!=null && lineIdx==null && <LinePicker city={city} onSelect={setLineIdx} onBack={()=>{setCityIdx(null);setLineIdx(null);}}/>}
           {lineData && <StationView key={`${cityIdx}-${lineIdx}`} lineData={lineData} cityLines={city.lines} onBack={()=>setLineIdx(null)}/>}
         </div>
+
+        {/* Footer */}
+        <div style={{textAlign:"center",padding:"16px 20px",fontSize:10,color:"#252535",borderTop:"1px solid #0f0f18",marginTop:20}}>
+          Compiled on {__BUILD_TIME__}
+        </div>
       </div>
     </>
   );
