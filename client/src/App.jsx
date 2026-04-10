@@ -171,6 +171,26 @@ async function listRecKeys(prefix) {
   });
 }
 
+// ─── Airport helpers ───────────────────────────────────────────────────────
+const AIRPORT_STATION_NAMES = new Set(["O'Hare", "Midway"]);
+const isAirportStation = name => name.includes("Airport") || AIRPORT_STATION_NAMES.has(name);
+
+function getAllAirports() {
+  const seen = new Set();
+  const result = [];
+  METRO_DATA.cities.forEach((city, ci) => {
+    city.lines.forEach((line, li) => {
+      line.stations.forEach((station, si) => {
+        if (isAirportStation(station) && !seen.has(station)) {
+          seen.add(station);
+          result.push({ station, cityName: city.name, system: city.system, cityIdx: ci, lineIdx: li, stationIdx: si, color: line.color, lineName: line.name });
+        }
+      });
+    });
+  });
+  return result;
+}
+
 // ─── Speech ────────────────────────────────────────────────────────────────
 const synth = typeof window !== "undefined" ? window.speechSynthesis : null;
 function speak(text, onStart, onEnd) {
@@ -190,6 +210,24 @@ function speak(text, onStart, onEnd) {
   });
 }
 if (typeof speechSynthesis !== "undefined") speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+
+function playChime() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [[880, 0], [660, 0.45]].forEach(([freq, start]) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = "sine"; osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, ctx.currentTime + start);
+      gain.gain.linearRampToValueAtTime(0.25, ctx.currentTime + start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + 0.7);
+      osc.start(ctx.currentTime + start);
+      osc.stop(ctx.currentTime + start + 0.75);
+    });
+    return new Promise(r => setTimeout(r, 1300));
+  } catch { return Promise.resolve(); }
+}
 
 // ─── Waveform ──────────────────────────────────────────────────────────────
 function Waveform({ active }) {
@@ -223,7 +261,7 @@ function LineDiagram({ stations, color, selectedIndex, transfers, cityLines, onS
     return () => ob.disconnect();
   }, []);
 
-  const STATION_W = 72, ROW_H = 82, DOT_Y = 24, PAD = 8;
+  const STATION_W = 90, ROW_H = 105, DOT_Y = 30, PAD = 8;
   const maxPerRow = Math.max(3, Math.floor((W - PAD * 2) / STATION_W));
   // Pick the perRow (≤ maxPerRow) that makes the last row as full as possible
   let perRow = maxPerRow, bestScore = -1;
@@ -262,9 +300,10 @@ function LineDiagram({ stations, color, selectedIndex, transfers, cityLines, onS
     if (sameRow) {
       d += ` L${n.x},${n.y}`;
     } else {
-      // Cubic bezier curving down between rows
-      const mid = (c.y + n.y) / 2;
-      d += ` C${c.x},${mid} ${n.x},${mid} ${n.x},${n.y}`;
+      // U-bend: bow control points outward so the curve visibly arcs around the corner
+      const offset = Math.min(W * 0.07, 50);
+      const bx = c.x > W / 2 ? c.x + offset : c.x - offset;
+      d += ` C${bx},${c.y} ${bx},${n.y} ${n.x},${n.y}`;
     }
   }
 
@@ -280,32 +319,43 @@ function LineDiagram({ stations, color, selectedIndex, transfers, cityLines, onS
           return (
             <g key={i} onClick={() => !isTraveling && onSelect(i)} style={{cursor: isTraveling?"not-allowed":"pointer"}}>
               {/* Pulse ring when active */}
-              {active && <circle cx={p.x} cy={p.y} r={13} fill="none" stroke={color} strokeWidth={1.5} strokeOpacity={0.35}/>}
+              {active && <circle cx={p.x} cy={p.y} r={16} fill="none" stroke={color} strokeWidth={2} strokeOpacity={0.35}/>}
               {/* Dot */}
-              <circle cx={p.x} cy={p.y} r={active?8:hasT?6:4}
+              <circle cx={p.x} cy={p.y} r={active?10:hasT?7:5}
                 fill={active?"#fff":hasT?"#fff":"#0a0d14"}
                 stroke={color} strokeWidth={active?3:2}/>
               {/* Transfer pip */}
-              {hasT && !active && <circle cx={p.x+5} cy={p.y-5} r={2.5} fill="#4cc9f0"/>}
+              {hasT && !active && <circle cx={p.x+10} cy={p.y-10} r={3.5} fill="#4cc9f0"/>}
+              {/* Airport indicator */}
+              {isAirportStation(name) && (
+                <text x={p.x} y={p.y-20} textAnchor="middle" fontSize={14} fill="#4cc9f0"
+                  style={{pointerEvents:"none",userSelect:"none"}}>✈</text>
+              )}
               {/* Label */}
-              <text x={p.x} y={p.y+18} textAnchor="middle" fontSize={8.5}
-                fill={active?"#fff":"#5a5a6a"} fontWeight={active?"700":"400"}
+              <text x={p.x} y={p.y+26} textAnchor="middle" fontSize={11}
+                fill={active?"#fff":"#8a8a9a"} fontWeight={active?"700":"400"}
                 fontFamily="DM Mono,monospace" style={{pointerEvents:"none",userSelect:"none"}}>
-                {name.length>13 ? name.slice(0,12)+"…" : name}
+                {name.length>17 ? name.slice(0,16)+"…" : name}
               </text>
-              {/* Transfer colored rects */}
-              {tList.slice(0,3).map((ab,ti) => {
-                const tl = cityLines.find(l=>l.abbr===ab);
-                if (!tl) return null;
-                return <rect key={ti} x={p.x-10+ti*13} y={p.y+28} width={11} height={9} rx={2} fill={tl.color}/>;
-              })}
-              {tList.slice(0,3).map((ab,ti) => {
-                const tl = cityLines.find(l=>l.abbr===ab);
-                if (!tl) return null;
-                return <text key={`t${ti}`} x={p.x-4.5+ti*13} y={p.y+36} fontSize={6.5}
-                  fill={tl.textColor} fontFamily="monospace" fontWeight="700"
-                  style={{pointerEvents:"none"}}>{ab.length>2?ab.slice(0,2):ab}</text>;
-              })}
+              {/* Transfer badges — centered */}
+              {(() => {
+                const vis = tList.slice(0,3);
+                const totalW = vis.length * 17 - 2;
+                return (<>
+                  {vis.map((ab,ti) => {
+                    const tl = cityLines.find(l=>l.abbr===ab);
+                    if (!tl) return null;
+                    return <rect key={ti} x={p.x - totalW/2 + ti*17} y={p.y+38} width={15} height={13} rx={3} fill={tl.color}/>;
+                  })}
+                  {vis.map((ab,ti) => {
+                    const tl = cityLines.find(l=>l.abbr===ab);
+                    if (!tl) return null;
+                    return <text key={`t${ti}`} x={p.x - totalW/2 + ti*17 + 7.5} y={p.y+49} fontSize={9}
+                      fill={tl.textColor} fontFamily="monospace" fontWeight="700" textAnchor="middle"
+                      style={{pointerEvents:"none"}}>{ab.length>2?ab.slice(0,2):ab}</text>;
+                  })}
+                </>);
+              })()}
             </g>
           );
         })}
@@ -466,9 +516,10 @@ function VoiceRecorder({ lineData, cityLines }) {
 }
 
 // ─── Station Panel ─────────────────────────────────────────────────────────
-function StationPanel({ selectedIndex, lineData, cityLines, isTraveling, isAutoPlaying, isPlaying, onDepart, onPlay }) {
+function StationPanel({ selectedIndex, lineData, cityLines, isTraveling, isAutoPlaying, isPlaying, onDepart, onPlay, onFly, onTransfer }) {
   const ref = useRef(null);
   const [showRec, setShowRec] = useState(false);
+  const [showFlights, setShowFlights] = useState(false);
   const { stations, color, name: lineName, system, directionLabels, transfers } = lineData;
   const sel = stations[selectedIndex];
   const prev = selectedIndex>0 ? stations[selectedIndex-1] : null;
@@ -504,7 +555,9 @@ function StationPanel({ selectedIndex, lineData, cityLines, isTraveling, isAutoP
       <div style={{display:"flex",alignItems:"flex-start",gap:10,marginBottom:14,flexWrap:"wrap"}}>
         <div style={{width:5,height:38,borderRadius:2,background:color,flexShrink:0,marginTop:2}}/>
         <div style={{flex:1,minWidth:0}}>
-          <div style={{fontFamily:"'Oswald',sans-serif",fontSize:20,letterSpacing:0.5,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{sel}</div>
+          <div style={{fontFamily:"'Oswald',sans-serif",fontSize:20,letterSpacing:0.5,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+            {isAirportStation(sel) && <span style={{color:"#4cc9f0",marginRight:6}}>✈</span>}{sel}
+          </div>
           {tList.length>0 && (
             <div style={{display:"flex",alignItems:"center",gap:3,marginTop:4,flexWrap:"wrap"}}>
               <span style={{fontSize:10,color:"#555"}}>Transfer:</span>
@@ -533,6 +586,32 @@ function StationPanel({ selectedIndex, lineData, cityLines, isTraveling, isAutoP
         </div>
       )}
 
+      {/* Transfer buttons */}
+      {tList.length > 0 && !isAutoPlaying && (() => {
+        const options = tList.map(abbr => {
+          const li = cityLines.findIndex(l => l.abbr === abbr);
+          if (li === -1) return null;
+          const line = cityLines[li];
+          const si = line.stations.indexOf(sel);
+          if (si === -1) return null;
+          return { abbr, li, si, line };
+        }).filter(Boolean);
+        return options.length > 0 ? (
+          <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14}}>
+            {options.map(({li, si, line}) => (
+              <button key={line.abbr} onClick={() => onTransfer(li, si)} disabled={isTraveling}
+                style={{background:line.color,color:line.textColor,border:"none",padding:"8px 14px",borderRadius:8,cursor:isTraveling?"not-allowed":"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit",opacity:isTraveling?0.5:1,lineHeight:1.5,textAlign:"left"}}
+                onMouseEnter={e=>e.currentTarget.style.opacity=isTraveling?"0.5":"0.85"}
+                onMouseLeave={e=>e.currentTarget.style.opacity=isTraveling?"0.5":"1"}
+              >
+                🔀 Transfer to {line.name}
+                <div style={{fontSize:9,fontWeight:400,marginTop:2,opacity:0.8}}>{line.stations.length} stations</div>
+              </button>
+            ))}
+          </div>
+        ) : null;
+      })()}
+
       {/* Announcements */}
       <div style={{display:"flex",flexWrap:"wrap",gap:7,marginBottom:14}}>
         {anns.map((a,i)=>(
@@ -541,6 +620,33 @@ function StationPanel({ selectedIndex, lineData, cityLines, isTraveling, isAutoP
           </button>
         ))}
       </div>
+
+      {/* Fly to another airport */}
+      {isAirportStation(sel) && (
+        <div style={{marginBottom:8}}>
+          <button onClick={()=>setShowFlights(f=>!f)} style={{background:showFlights?"#0c1f2f":"transparent",border:"1px solid #222",color:"#60a0d0",padding:"6px 12px",borderRadius:8,cursor:"pointer",fontSize:11}}>
+            {showFlights?"▾":"▸"} ✈ Fly to another airport
+          </button>
+          {showFlights && (
+            <div style={{background:"#0a0d14",border:"1px solid #1e1e2e",borderRadius:10,padding:14,marginTop:8,display:"flex",flexDirection:"column",gap:8}}>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:13,color:"#60a0d0",marginBottom:4}}>Select a destination</div>
+              {getAllAirports().filter(a => a.station !== sel).map(a => (
+                <button key={a.station} onClick={()=>{ onFly(a.cityIdx, a.lineIdx, a.stationIdx); setShowFlights(false); }}
+                  style={{background:"#0d1117",border:`2px solid ${a.color}44`,borderRadius:8,padding:"10px 14px",cursor:"pointer",textAlign:"left",fontFamily:"inherit",color:"#ddd",display:"flex",alignItems:"center",gap:10}}
+                  onMouseEnter={e=>e.currentTarget.style.borderColor=a.color}
+                  onMouseLeave={e=>e.currentTarget.style.borderColor=`${a.color}44`}
+                >
+                  <div style={{width:8,height:8,borderRadius:"50%",background:a.color,flexShrink:0}}/>
+                  <div>
+                    <div style={{fontSize:13,fontWeight:600}}>✈ {a.station}</div>
+                    <div style={{fontSize:10,color:"#555",marginTop:2}}>{a.cityName} — {a.lineName}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Recorder toggle */}
       <button onClick={()=>setShowRec(r=>!r)} style={{background:showRec?"#1a1030":"transparent",border:"1px solid #222",color:"#666",padding:"6px 12px",borderRadius:8,cursor:"pointer",fontSize:11}}>
@@ -552,8 +658,8 @@ function StationPanel({ selectedIndex, lineData, cityLines, isTraveling, isAutoP
 }
 
 // ─── Station View ──────────────────────────────────────────────────────────
-function StationView({ lineData, cityLines, onBack }) {
-  const [selIdx, setSelIdx] = useState(null);
+function StationView({ lineData, cityLines, onBack, initialStationIdx, onFly, onTransfer }) {
+  const [selIdx, setSelIdx] = useState(initialStationIdx ?? null);
   const [playing, setPlaying] = useState(false);
   const [autoPlaying, setAutoPlaying] = useState(false);
   const [travelFrom, setTravelFrom] = useState(null);
@@ -561,6 +667,7 @@ function StationView({ lineData, cityLines, onBack }) {
   const [travelPct, setTravelPct] = useState(0);
   const [traveling, setTraveling] = useState(false);
   const [travelSec, setTravelSec] = useState(10);
+  const [chimesEnabled, setChimesEnabled] = useState(true);
   const autoRef = useRef(false);
   const rafRef = useRef(null);
   const { stations, color, name: lineName, system, city, directionLabels } = lineData;
@@ -585,15 +692,46 @@ function StationView({ lineData, cityLines, onBack }) {
   const startAuto = useCallback(async (dir) => {
     setAutoPlaying(true); autoRef.current = true;
     const idxs = dir==="forward" ? stations.map((_,i)=>i) : stations.map((_,i)=>stations.length-1-i);
-    for (const i of idxs) {
+    for (let step=0; step<idxs.length; step++) {
       if (!autoRef.current) break;
+      const i = idxs[step];
+      const isLast = step===idxs.length-1;
+      const nextSt = !isLast ? stations[idxs[step+1]] : null;
       setSelIdx(i);
+      // Arrival chime
+      if (chimesEnabled) { await playChime(); if (!autoRef.current) break; }
+      // Arriving announcement
       await speak(`Now arriving… ${stations[i]}.`, ()=>setPlaying(true), ()=>setPlaying(false));
       if (!autoRef.current) break;
-      await new Promise(r=>setTimeout(r,700));
+      // Doors opening
+      await speak("Doors opening. Please stand clear of the doors.", ()=>setPlaying(true), ()=>setPlaying(false));
+      if (!autoRef.current) break;
+      // Dwell at station
+      await new Promise(r=>setTimeout(r, 1200));
+      if (!autoRef.current) break;
+      // Transfer announcement
+      const tList = (lineData.transfers && lineData.transfers[stations[i]]) || [];
+      if (tList.length>0) {
+        await speak(`Transfer is available at ${stations[i]}. Please check station signage for connecting services.`, ()=>setPlaying(true), ()=>setPlaying(false));
+        if (!autoRef.current) break;
+      }
+      if (isLast) {
+        // Last stop
+        await speak(`This is ${stations[i]}. This is the last stop on this train. All passengers must exit. Thank you for riding ${system}.`, ()=>setPlaying(true), ()=>setPlaying(false));
+      } else {
+        // Next station + doors closing
+        await speak(`Next station… ${nextSt}.`, ()=>setPlaying(true), ()=>setPlaying(false));
+        if (!autoRef.current) break;
+        await speak("Step back. Doors closing.", ()=>setPlaying(true), ()=>setPlaying(false));
+        if (!autoRef.current) break;
+        // Departure chime
+        if (chimesEnabled) { await playChime(); if (!autoRef.current) break; }
+        // Travel time between stations
+        await new Promise(r=>setTimeout(r, travelSec*1000));
+      }
     }
     autoRef.current=false; setAutoPlaying(false);
-  }, [stations]);
+  }, [stations, chimesEnabled, travelSec, lineData, system]);
 
   const stopAuto = () => { autoRef.current=false; synth?.cancel(); setAutoPlaying(false); setPlaying(false); };
 
@@ -630,7 +768,11 @@ function StationView({ lineData, cityLines, onBack }) {
             <button onClick={()=>startAuto("forward")} style={{background:"#0d1117",border:`1px solid ${color}44`,color:color,padding:"6px 12px",borderRadius:8,cursor:"pointer",fontSize:11}}>▶ Full run → {directionLabels.forward}</button>
           </>
         )}
-        <div style={{display:"flex",alignItems:"center",gap:6,marginLeft:"auto"}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginLeft:"auto",flexWrap:"wrap"}}>
+          <label style={{display:"flex",alignItems:"center",gap:5,cursor:"pointer",fontSize:11,color:"#666",userSelect:"none"}}>
+            <input type="checkbox" checked={chimesEnabled} onChange={e=>setChimesEnabled(e.target.checked)} style={{accentColor:color,cursor:"pointer"}}/>
+            🔔 Chimes
+          </label>
           <span style={{fontSize:10,color:"#444",whiteSpace:"nowrap"}}>Travel time:</span>
           <input type="range" min={2} max={30} step={1} value={travelSec} onChange={e=>setTravelSec(+e.target.value)} style={{width:75,accentColor:color}}/>
           <span style={{fontSize:11,color:"#888",minWidth:28}}>{travelSec}s</span>
@@ -661,6 +803,8 @@ function StationView({ lineData, cityLines, onBack }) {
           isTraveling={traveling} isAutoPlaying={autoPlaying} isPlaying={playing}
           onDepart={startTravel}
           onPlay={async text => { await speak(text, ()=>setPlaying(true), ()=>setPlaying(false)); }}
+          onFly={onFly}
+          onTransfer={onTransfer}
         />
       )}
     </div>
@@ -713,7 +857,7 @@ function CityPicker({ onSelect }) {
 
 // ─── Editable Title ────────────────────────────────────────────────────────
 function EditableTitle() {
-  const KEY = "metroTitle", DEF = "METRO SOUNDBOARD";
+  const KEY = "appTitle", DEF = "JULIAN'S TOYBOX";
   const [title, setTitle] = useState(() => {
     try { return localStorage.getItem(KEY) || DEF; } catch { return DEF; }
   });
@@ -754,13 +898,78 @@ function EditableTitle() {
   );
 }
 
+// ─── Activity Picker ───────────────────────────────────────────────────────
+const ACTIVITIES = [
+  { name: "Metro Soundboard", icon: "🚇", desc: "Explore transit lines & play station announcements", active: true },
+  { name: "Transit Trivia",   icon: "🧠", desc: "Test your knowledge of global metro systems",        active: false },
+  { name: "Route Challenge",  icon: "🗺️", desc: "Find the fastest path between two stations",         active: false },
+  { name: "Schedule Run",     icon: "⏱️", desc: "Race the clock through a line",                      active: false },
+  { name: "Station Builder",  icon: "🏗️", desc: "Design and build your own metro system",             active: false },
+];
+
+function ActivityPicker({ onSelect }) {
+  const [hovered, setHovered] = useState(null);
+  return (
+    <div>
+      <div style={{fontFamily:"'Oswald',sans-serif",fontSize:12,color:"#333",marginBottom:14,letterSpacing:3}}>SELECT AN ACTIVITY</div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(170px,1fr))",gap:12}}>
+        {ACTIVITIES.map((a,i) => (
+          <button key={a.name}
+            onClick={() => { if (a.active) onSelect(i); }}
+            onMouseEnter={e => {
+              if (a.active) { e.currentTarget.style.borderColor="#4cc9f0"; e.currentTarget.style.transform="translateY(-4px)"; }
+              setHovered(i);
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.borderColor=a.active?"#2a2a3a":"#1a1a25";
+              e.currentTarget.style.transform="";
+              setHovered(null);
+            }}
+            onTouchStart={() => setHovered(i)}
+            onTouchEnd={() => setTimeout(()=>setHovered(null), 1500)}
+            style={{
+              background:a.active?"linear-gradient(145deg,#111827,#1a2332)":"linear-gradient(145deg,#0d0d14,#111118)",
+              border:`1px solid ${a.active?"#2a2a3a":"#1a1a25"}`,borderRadius:12,padding:"18px 14px",
+              cursor:a.active?"pointer":"default",textAlign:"center",color:a.active?"#fff":"#333",
+              transition:"all 0.2s",fontFamily:"inherit",position:"relative",overflow:"hidden",
+            }}
+          >
+            <div style={{fontSize:32,marginBottom:8,filter:a.active?"none":"grayscale(1) opacity(0.25)"}}>{a.icon}</div>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:14}}>{a.name}</div>
+            <div style={{fontSize:10,color:a.active?"#555":"#2a2a35",marginTop:3}}>{a.active?a.desc:"???"}</div>
+            {!a.active && hovered===i && (
+              <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(7,10,16,0.93)",borderRadius:12,fontSize:11,color:"#4cc9f0",padding:14,lineHeight:1.6}}>
+                🚧 Coming soon
+              </div>
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── App ───────────────────────────────────────────────────────────────────
 export default function App() {
+  const [activityIdx, setActivityIdx] = useState(null);
   const [cityIdx, setCityIdx] = useState(null);
   const [lineIdx, setLineIdx] = useState(null);
+  const [flyStation, setFlyStation] = useState(null);
   const city = cityIdx!=null ? METRO_DATA.cities[cityIdx] : null;
   const line = city && lineIdx!=null ? city.lines[lineIdx] : null;
   const lineData = line ? {...line, city:city.name, system:city.system} : null;
+
+  const goHome = () => { setActivityIdx(null); setCityIdx(null); setLineIdx(null); setFlyStation(null); };
+  const handleFly = (ci, li, si) => { setCityIdx(ci); setLineIdx(li); setFlyStation(si); };
+  const handleTransfer = (li, si) => { setLineIdx(li); setFlyStation(si); };
+
+  const subtitle = activityIdx==null
+    ? "Select an activity"
+    : cityIdx==null
+      ? "Metro Soundboard — Select a City"
+      : lineIdx==null
+        ? `${city.name} — Select a Line`
+        : `${city.name} ${line.name}`;
 
   return (
     <>
@@ -771,29 +980,32 @@ export default function App() {
         {/* Header */}
         <div style={{background:"linear-gradient(180deg,#0d1117 0%,transparent 100%)",padding:"24px 20px 18px",textAlign:"center",borderBottom:"1px solid #151520"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,marginBottom:5}}>
-            <span style={{fontSize:26}}>🚇</span>
+            <span style={{fontSize:26}}>🧸</span>
             <EditableTitle/>
           </div>
-          <div style={{fontSize:11,color:"#333",letterSpacing:1}}>
-            {cityIdx==null?"US Metro Transit Simulator":lineIdx==null?`${city.name} — Select a Line`:`${city.name} ${line.name}`}
-          </div>
+          <div style={{fontSize:11,color:"#333",letterSpacing:1}}>{subtitle}</div>
         </div>
 
         {/* Breadcrumb */}
-        {cityIdx!=null && (
+        {activityIdx!=null && (
           <div style={{padding:"6px 20px",borderBottom:"1px solid #0f0f18",fontSize:10,color:"#333",display:"flex",gap:4,alignItems:"center"}}>
-            <span style={{cursor:"pointer",color:"#4cc9f040"}} onClick={()=>{setCityIdx(null);setLineIdx(null);}}>Cities</span>
+            <span style={{cursor:"pointer",color:"#4cc9f040"}} onClick={goHome}>Activities</span>
             <span>›</span>
-            <span style={lineIdx==null?{color:"#4cc9f0"}:{cursor:"pointer",color:"#4cc9f040"}} onClick={lineIdx!=null?()=>setLineIdx(null):undefined}>{city.name}</span>
+            <span style={cityIdx==null?{color:"#4cc9f0"}:{cursor:"pointer",color:"#4cc9f040"}} onClick={cityIdx!=null?()=>{setCityIdx(null);setLineIdx(null);}:undefined}>Metro Soundboard</span>
+            {cityIdx!=null && <>
+              <span>›</span>
+              <span style={lineIdx==null?{color:"#4cc9f0"}:{cursor:"pointer",color:"#4cc9f040"}} onClick={lineIdx!=null?()=>setLineIdx(null):undefined}>{city.name}</span>
+            </>}
             {lineIdx!=null && <><span>›</span><span style={{color:"#4cc9f0"}}>{line.name}</span></>}
           </div>
         )}
 
         {/* Content */}
         <div style={{padding:20,maxWidth:1080,margin:"0 auto"}}>
-          {cityIdx==null && <CityPicker onSelect={i=>{setCityIdx(i);setLineIdx(null);}}/>}
-          {cityIdx!=null && lineIdx==null && <LinePicker city={city} onSelect={setLineIdx} onBack={()=>{setCityIdx(null);setLineIdx(null);}}/>}
-          {lineData && <StationView key={`${cityIdx}-${lineIdx}`} lineData={lineData} cityLines={city.lines} onBack={()=>setLineIdx(null)}/>}
+          {activityIdx==null && <ActivityPicker onSelect={setActivityIdx}/>}
+          {activityIdx===0 && cityIdx==null && <CityPicker onSelect={i=>{setCityIdx(i);setLineIdx(null);}}/>}
+          {activityIdx===0 && cityIdx!=null && lineIdx==null && <LinePicker city={city} onSelect={setLineIdx} onBack={()=>{setCityIdx(null);setLineIdx(null);}}/>}
+          {activityIdx===0 && lineData && <StationView key={`${cityIdx}-${lineIdx}`} lineData={lineData} cityLines={city.lines} onBack={()=>{setLineIdx(null);setFlyStation(null);}} initialStationIdx={flyStation} onFly={handleFly} onTransfer={handleTransfer}/>}
         </div>
 
         {/* Footer */}
