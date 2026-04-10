@@ -224,7 +224,14 @@ function LineDiagram({ stations, color, selectedIndex, transfers, cityLines, onS
   }, []);
 
   const STATION_W = 72, ROW_H = 82, DOT_Y = 24, PAD = 8;
-  const perRow = Math.max(3, Math.floor((W - PAD * 2) / STATION_W));
+  const maxPerRow = Math.max(3, Math.floor((W - PAD * 2) / STATION_W));
+  // Pick the perRow (≤ maxPerRow) that makes the last row as full as possible
+  let perRow = maxPerRow, bestScore = -1;
+  for (let p = maxPerRow; p >= 3; p--) {
+    const last = stations.length % p || p;
+    const score = last / p;
+    if (score > bestScore) { bestScore = score; perRow = p; }
+  }
 
   // Build rows (snake: even rows L→R, odd rows R→L)
   const rows = [];
