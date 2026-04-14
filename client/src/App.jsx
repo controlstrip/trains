@@ -266,7 +266,7 @@ function TBadge({ abbr, cityLines }) {
 }
 
 // ─── SVG Line Diagram — snake layout with curved row connectors ────────────
-function LineDiagram({ stations, color, selectedIndex, transfers, cityLines, onSelect, isTraveling }) {
+function LineDiagram({ stations, color, selectedIndex, transfers, cityLines, onSelect, isTraveling, travelFromIdx, travelPct }) {
   const ref = useRef(null);
   const [W, setW] = useState(600);
   useEffect(() => {
@@ -324,7 +324,38 @@ function LineDiagram({ stations, color, selectedIndex, transfers, cityLines, onS
   return (
     <div ref={ref} style={{width:"100%"}}>
       <svg width={W} height={svgH} style={{display:"block",overflow:"visible"}}>
+        <defs>
+          <filter id="trainGlow" x="-50%" y="-50%" width="200%" height="200%">
+            <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor={color} floodOpacity="0.9"/>
+          </filter>
+        </defs>
         {d && <path d={d} fill="none" stroke={color} strokeWidth={4} strokeOpacity={0.65} strokeLinejoin="round" strokeLinecap="round"/>}
+        {/* Traveling train emoji sliding along the path */}
+        {(() => {
+          if (travelFromIdx == null || travelPct == null || travelFromIdx < 0 || travelFromIdx >= pos.length - 1) return null;
+          const c = pos[travelFromIdx], n = pos[travelFromIdx + 1];
+          const t = travelPct;
+          const sameRow = Math.floor(travelFromIdx / perRow) === Math.floor((travelFromIdx + 1) / perRow);
+          let tx, ty;
+          if (sameRow) {
+            tx = c.x + (n.x - c.x) * t;
+            ty = c.y;
+          } else {
+            const offset = Math.min(W * 0.07, 50);
+            const bx = c.x > W / 2 ? c.x + offset : c.x - offset;
+            const mt = 1 - t;
+            tx = mt*mt*mt*c.x + 3*mt*mt*t*bx + 3*mt*t*t*bx + t*t*t*n.x;
+            ty = mt*mt*mt*c.y + 3*mt*mt*t*c.y + 3*mt*t*t*n.y + t*t*t*n.y;
+          }
+          return (
+            <g key="train" style={{pointerEvents:"none"}}>
+              <circle cx={tx} cy={ty} r={13} fill="#000" fillOpacity={0.55}/>
+              <text x={tx} y={ty+6} textAnchor="middle" fontSize={15}
+                style={{userSelect:"none"}}
+                filter="url(#trainGlow)">🚇</text>
+            </g>
+          );
+        })()}
         {pos.map((p,i) => {
           const name = stations[i];
           const active = selectedIndex === i;
@@ -399,7 +430,7 @@ function TravelBar({ from, to, progress, lineColor }) {
         {/* Train emoji sliding along track */}
         <div style={{
           position:"absolute", top:"50%",
-          left:`calc(${pct}% * (100% - 0px) / 100)`,
+          left:`${pct}%`,
           transform:"translate(-50%,-60%)",
           fontSize:22, lineHeight:1,
           filter:`drop-shadow(0 0 8px ${lineColor})`,
@@ -435,10 +466,9 @@ function VoiceRecorder({ lineData, cityLines }) {
 
   useEffect(() => {
     (async () => {
-      try {
-        const devs = await navigator.mediaDevices.enumerateDevices();
-        setMicStatus(devs.some(d=>d.kind==="audioinput") ? "ok" : "none");
-      } catch { setMicStatus("unknown"); }
+      // Don't enumerate devices pre-permission — browsers often hide mic devices
+      // until access is granted. Let getUserMedia handle errors instead.
+      setMicStatus(navigator.mediaDevices?.getUserMedia ? "ok" : "none");
       try {
         const keys = await listRecKeys(lineKey+"/");
         const loaded = {};
@@ -678,6 +708,7 @@ function StationView({ lineData, cityLines, onBack, initialStationIdx, onFly, on
   const [autoPlaying, setAutoPlaying] = useState(false);
   const [travelFrom, setTravelFrom] = useState(null);
   const [travelTo, setTravelTo] = useState(null);
+  const [travelFromIdx, setTravelFromIdx] = useState(null);
   const [travelPct, setTravelPct] = useState(0);
   const [traveling, setTraveling] = useState(false);
   const [travelSec, setTravelSec] = useState(10);
@@ -690,18 +721,19 @@ function StationView({ lineData, cityLines, onBack, initialStationIdx, onFly, on
     if (fromIdx >= stations.length-1) return;
     const toIdx = fromIdx+1;
     setTravelFrom(stations[fromIdx]); setTravelTo(stations[toIdx]);
+    setTravelFromIdx(fromIdx);
     setTravelPct(0); setTraveling(true);
     const t0 = Date.now(), dur = travelSec*1000;
     const tick = () => {
       const p = Math.min((Date.now()-t0)/dur, 1);
       setTravelPct(p);
       if (p<1) rafRef.current = requestAnimationFrame(tick);
-      else { setTraveling(false); setTravelFrom(null); setTravelTo(null); setSelIdx(toIdx); }
+      else { setTraveling(false); setTravelFrom(null); setTravelTo(null); setTravelFromIdx(null); setSelIdx(toIdx); }
     };
     rafRef.current = requestAnimationFrame(tick);
   }, [stations, travelSec]);
 
-  const cancelTravel = () => { cancelAnimationFrame(rafRef.current); setTraveling(false); setTravelFrom(null); setTravelTo(null); };
+  const cancelTravel = () => { cancelAnimationFrame(rafRef.current); setTraveling(false); setTravelFrom(null); setTravelTo(null); setTravelFromIdx(null); };
 
   const startAuto = useCallback(async (dir) => {
     setAutoPlaying(true); autoRef.current = true;
@@ -793,21 +825,20 @@ function StationView({ lineData, cityLines, onBack, initialStationIdx, onFly, on
         </div>
       </div>
 
-      {/* Travel bar */}
-      {traveling && travelFrom && (
-        <div style={{background:"#0d1117",border:`1px solid ${color}33`,borderRadius:10,padding:"12px 16px",marginBottom:10}}>
-          <TravelBar from={travelFrom} to={travelTo} progress={travelPct} lineColor={color}/>
-          <button onClick={cancelTravel} style={{background:"transparent",border:"1px solid #222",color:"#555",padding:"3px 10px",borderRadius:6,cursor:"pointer",fontSize:10,marginTop:6}}>Cancel</button>
-        </div>
-      )}
-
-      {/* Line diagram — sits above panel, panel overlaps bottom edge */}
+      {/* Line diagram — train emoji slides along it during travel */}
       <div style={{background:"#0a0d14",border:"1px solid #161622",borderRadius:12,padding:"14px 10px",position:"relative",zIndex:1}}>
         <LineDiagram
           stations={stations} color={color} selectedIndex={selIdx}
           transfers={lineData.transfers} cityLines={cityLines}
           onSelect={setSelIdx} isTraveling={traveling}
+          travelFromIdx={travelFromIdx} travelPct={travelPct}
         />
+        {traveling && travelFrom && (
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:6,padding:"4px 4px 0"}}>
+            <span style={{fontSize:11,color:"#555"}}>{travelFrom} → {travelTo} · {Math.round(travelPct*100)}%</span>
+            <button onClick={cancelTravel} style={{background:"transparent",border:"1px solid #222",color:"#444",padding:"2px 8px",borderRadius:5,cursor:"pointer",fontSize:10}}>Cancel</button>
+          </div>
+        )}
       </div>
 
       {/* Station panel — overlaps diagram by 6px */}
