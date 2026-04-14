@@ -229,6 +229,20 @@ function playChime() {
   } catch { return Promise.resolve(); }
 }
 
+function playElevatorDing() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = "sine"; osc.frequency.value = 1046.5;
+    gain.gain.setValueAtTime(0.4, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.4);
+    osc.start(); osc.stop(ctx.currentTime + 1.5);
+    return new Promise(r => setTimeout(r, 600));
+  } catch { return Promise.resolve(); }
+}
+
 // ─── Waveform ──────────────────────────────────────────────────────────────
 function Waveform({ active }) {
   return (
@@ -898,10 +912,464 @@ function EditableTitle() {
   );
 }
 
+// ─── Elevator Simulator ────────────────────────────────────────────────────
+const ELEVATORS = [
+  { id:"hotel",    name:"Grand Hotel",    icon:"🏨", color:"#c9a84c",
+    desc:"Lobby to Penthouse",         note:"No 13th floor",
+    groundFloor:"L",  floors:["L","2","3","4","5","6","7","8","9","10","11","12","PH"],
+    panelSide:"right", panelBg:"linear-gradient(180deg,#18120a,#100d05)", panelBorder:"#c9a84c55",
+    btnRadius:"50%", btnGap:5, btnSize:44, displayColor:"#d4a43c", displayBg:"#0a0700",
+    doorGrad:"linear-gradient(90deg,#6b5a3a,#c8b87a 22%,#a89060 50%,#d4c088 72%,#a09050 86%,#6b5a3a)",
+    doorGradR:"linear-gradient(270deg,#6b5a3a,#c8b87a 22%,#a89060 50%,#d4c088 72%,#a09050 86%,#6b5a3a)" },
+  { id:"office",   name:"Office Tower",   icon:"🏢", color:"#4c7ac9",
+    desc:"Underground parking to 15F", note:"Skips floor 13",
+    groundFloor:"G",  floors:["B2","B1","G","2","3","4","5","6","7","8","9","10","11","12","14","15"],
+    panelSide:"left",  panelBg:"linear-gradient(180deg,#080c18,#050810)", panelBorder:"#4c7ac955",
+    btnRadius:"3px",  btnGap:4, btnSize:40, displayColor:"#4cc9f0", displayBg:"#02050f",
+    doorGrad:"linear-gradient(90deg,#3a3a3a,#888 22%,#606060 50%,#aaa 72%,#707070 86%,#3a3a3a)",
+    doorGradR:"linear-gradient(270deg,#3a3a3a,#888 22%,#606060 50%,#aaa 72%,#707070 86%,#3a3a3a)" },
+  { id:"parking",  name:"Parking Garage", icon:"🚗", color:"#888888",
+    desc:"Three underground levels",   note:"Underground only",
+    groundFloor:"L",  floors:["G3","G2","G1","L"],
+    panelSide:"right", panelBg:"linear-gradient(180deg,#0c0c0c,#080808)", panelBorder:"#88888855",
+    btnRadius:"2px",  btnGap:6, btnSize:60, displayColor:"#ff6600", displayBg:"#080400",
+    doorGrad:"linear-gradient(90deg,#222,#505050 22%,#383838 50%,#606060 72%,#404040 86%,#222)",
+    doorGradR:"linear-gradient(270deg,#222,#505050 22%,#383838 50%,#606060 72%,#404040 86%,#222)" },
+  { id:"hospital", name:"Hospital",       icon:"🏥", color:"#4cc9a8",
+    desc:"Basement to patient floors", note:"Has basement & ground",
+    groundFloor:"G",  floors:["B","G","1","2","3","4","5","6","7","8"],
+    panelSide:"left",  panelBg:"linear-gradient(180deg,#041614,#030f0d)", panelBorder:"#4cc9a855",
+    btnRadius:"22px", btnGap:4, btnSize:42, displayColor:"#4cc9a8", displayBg:"#020c0a",
+    doorGrad:"linear-gradient(90deg,#7a8a88,#c4d4d0 22%,#a0b0ae 50%,#d0e0dc 72%,#aabab8 86%,#7a8a88)",
+    doorGradR:"linear-gradient(270deg,#7a8a88,#c4d4d0 22%,#a0b0ae 50%,#d0e0dc 72%,#aabab8 86%,#7a8a88)" },
+  { id:"mall",     name:"Shopping Mall",  icon:"🛍️", color:"#c94c9a",
+    desc:"Lower level to top floor",   note:"Has lower level (LL)",
+    groundFloor:"L",  floors:["LL","L","1","2","3"],
+    panelSide:"right", panelBg:"linear-gradient(180deg,#180610,#120408)", panelBorder:"#c94c9a55",
+    btnRadius:"50px", btnGap:5, btnSize:54, displayColor:"#ff69b4", displayBg:"#100208",
+    doorGrad:"linear-gradient(90deg,#7a2458,#c87aac 22%,#a05488 50%,#d490c0 72%,#b060a0 86%,#7a2458)",
+    doorGradR:"linear-gradient(270deg,#7a2458,#c87aac 22%,#a05488 50%,#d490c0 72%,#b060a0 86%,#7a2458)" },
+  { id:"lucky",    name:"Lucky Tower",    icon:"🍀", color:"#4cc94c",
+    desc:"20 floors, no 4 or 13",      note:"Skips 4th & 13th floors",
+    groundFloor:"1",  floors:["1","2","3","5","6","7","8","9","10","11","12","15","16","17","18","19","20"],
+    panelSide:"left",  panelBg:"linear-gradient(180deg,#061206,#040c04)", panelBorder:"#4cc94c55",
+    btnRadius:"8px 20px 8px 20px", btnGap:4, btnSize:40, displayColor:"#4cc94c", displayBg:"#030803",
+    doorGrad:"linear-gradient(90deg,#1a3a1a,#4a8a4a 22%,#306030 50%,#5a9a5a 72%,#408040 86%,#1a3a1a)",
+    doorGradR:"linear-gradient(270deg,#1a3a1a,#4a8a4a 22%,#306030 50%,#5a9a5a 72%,#408040 86%,#1a3a1a)" },
+];
+
+function ElevatorPicker({ onSelect, onBack }) {
+  return (
+    <div>
+      <button onClick={onBack} style={{background:"transparent",border:"1px solid #2a2a3a",color:"#666",padding:"6px 13px",borderRadius:8,cursor:"pointer",fontSize:12,marginBottom:16}}>← Back</button>
+      <div style={{fontFamily:"'Oswald',sans-serif",fontSize:12,color:"#333",marginBottom:14,letterSpacing:3}}>SELECT AN ELEVATOR</div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:12}}>
+        {ELEVATORS.map((el,i) => (
+          <button key={el.id} onClick={()=>onSelect(i)}
+            style={{background:"linear-gradient(145deg,#111827,#1a2332)",border:`1px solid ${el.color}44`,borderRadius:12,padding:"18px 14px",cursor:"pointer",textAlign:"center",color:"#fff",transition:"all 0.2s",fontFamily:"inherit"}}
+            onMouseEnter={e=>{e.currentTarget.style.borderColor=el.color;e.currentTarget.style.transform="translateY(-4px)";}}
+            onMouseLeave={e=>{e.currentTarget.style.borderColor=`${el.color}44`;e.currentTarget.style.transform="";}}
+          >
+            <div style={{fontSize:34,marginBottom:8}}>{el.icon}</div>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:15,marginBottom:4}}>{el.name}</div>
+            <div style={{fontSize:10,color:"#555",marginBottom:5}}>{el.desc}</div>
+            <div style={{fontSize:10,color:el.color,fontStyle:"italic",marginBottom:8}}>{el.note}</div>
+            <div style={{display:"flex",flexWrap:"wrap",justifyContent:"center",gap:3}}>
+              {el.floors.map(f=><span key={f} style={{fontSize:9,color:"#444",background:"#0d1117",padding:"2px 5px",borderRadius:3,border:"1px solid #1e1e2e"}}>{f}</span>)}
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const FLOOR_SCENES = {
+  hotel: {
+    "L": {bg:"#2e2214",left:"🛋️",right:"🌺", label:"Grand Lobby",   window:"city-day"},
+    "2": {bg:"#1a2828",left:"🏊",right:"🪟", label:"Pool & Spa",     window:"interior"},
+    "3": {bg:"#1e1826",left:"🕯️",right:"💆", label:"Wellness Spa",   window:"city-day"},
+    "4": {bg:"#2a1c10",left:"🍷",right:"🍽️", label:"Restaurant",     window:"city-day"},
+    "5": {bg:"#1e1a18",left:"🛏️",right:"🖼️", label:"5th Floor",      window:"city-night"},
+    "6": {bg:"#1e1c18",left:"🛏️",right:"🌸", label:"6th Floor",      window:"city-night"},
+    "7": {bg:"#1c1e18",left:"🪴",right:"🛏️", label:"7th Floor",      window:"city-night"},
+    "8": {bg:"#181e1c",left:"🛏️",right:"🏙️", label:"8th Floor",      window:"city-night"},
+    "9": {bg:"#1a1c18",left:"🌿",right:"🛏️", label:"9th Floor",      window:"city-night"},
+    "10":{bg:"#1e1818",left:"🛏️",right:"🌹", label:"10th Floor",     window:"city-night"},
+    "11":{bg:"#181e1e",left:"💫",right:"🛏️", label:"11th Floor",     window:"city-night"},
+    "12":{bg:"#1a1426",left:"🎭",right:"✨",  label:"Event Hall",     window:"city-night"},
+    "PH":{bg:"#14101e",left:"🛋️",right:"🌇", label:"Penthouse",      window:"panorama"},
+  },
+  office: {
+    "B2":{bg:"#0c0c0c",left:"🚗",right:"🚙", label:"Parking B2",     window:"none"},
+    "B1":{bg:"#0c0c0c",left:"🛵",right:"📦", label:"Parking B1",     window:"none"},
+    "G": {bg:"#121820",left:"📮",right:"☕",  label:"Ground Floor",   window:"city-day"},
+    "2": {bg:"#0d1420",left:"💻",right:"🪴",  label:"2nd Floor",      window:"city-day"},
+    "3": {bg:"#0d1420",left:"📋",right:"🖥️", label:"3rd Floor",      window:"city-day"},
+    "4": {bg:"#0d1620",left:"📽️",right:"🤝", label:"Conference",     window:"city-day"},
+    "5": {bg:"#0d1420",left:"☕",right:"📌",  label:"5th Floor",      window:"city-day"},
+    "6": {bg:"#0d1420",left:"📁",right:"🖨️", label:"Records",        window:"city-day"},
+    "7": {bg:"#0e1820",left:"💻",right:"⌨️", label:"IT — 7F",        window:"city-night"},
+    "8": {bg:"#0d1620",left:"📊",right:"🏆",  label:"Sales — 8F",    window:"city-night"},
+    "9": {bg:"#0d1420",left:"🩺",right:"📋",  label:"HR — 9F",       window:"city-night"},
+    "10":{bg:"#0d1420",left:"📚",right:"🖊️", label:"Legal — 10F",   window:"city-night"},
+    "11":{bg:"#141420",left:"🪟",right:"🏙️", label:"Exec — 11F",    window:"panorama"},
+    "12":{bg:"#141420",left:"🎩",right:"☕",  label:"C-Suite — 12F", window:"panorama"},
+    "14":{bg:"#141820",left:"🍱",right:"🥗",  label:"Cafeteria",     window:"city-night"},
+    "15":{bg:"#0d1018",left:"⚙️",right:"🔧", label:"Mechanical",     window:"none"},
+  },
+  parking: {
+    "G3":{bg:"#0c0c0c",left:"🚗",right:"🚙", label:"Level G3",       window:"none"},
+    "G2":{bg:"#0c0c0c",left:"🚕",right:"🛻", label:"Level G2",       window:"none"},
+    "G1":{bg:"#0c0c0c",left:"🚐",right:"🏍️",label:"Level G1",       window:"none"},
+    "L": {bg:"#0e0e0e",left:"🎟️",right:"🌤️",label:"Street Level",   window:"sky"},
+  },
+  hospital: {
+    "B": {bg:"#0c1412",left:"🧪",right:"📦", label:"Basement",       window:"none"},
+    "G": {bg:"#12201e",left:"🏥",right:"🌡️", label:"Main Entrance",  window:"city-day"},
+    "1": {bg:"#0e1816",left:"🩺",right:"💊", label:"Outpatient",     window:"city-day"},
+    "2": {bg:"#0e1816",left:"🛌",right:"🩹", label:"Ward 2",         window:"city-day"},
+    "3": {bg:"#0e1816",left:"🔬",right:"🧫", label:"Pathology",      window:"city-day"},
+    "4": {bg:"#0e1816",left:"👶",right:"🍼", label:"Maternity",      window:"city-day"},
+    "5": {bg:"#0e1816",left:"🛌",right:"🌸", label:"Ward 5",         window:"city-day"},
+    "6": {bg:"#0e1816",left:"🩻",right:"📋", label:"Radiology",      window:"none"},
+    "7": {bg:"#0e1816",left:"🧑‍⚕️",right:"💉",label:"ICU — 7F",     window:"none"},
+    "8": {bg:"#0f1a18",left:"🍱",right:"☕", label:"Cafeteria",      window:"city-day"},
+  },
+  mall: {
+    "LL":{bg:"#180814",left:"🛒",right:"🅿️", label:"Lower Level",    window:"none"},
+    "L": {bg:"#1c0e18",left:"🛍️",right:"☕", label:"Ground Floor",   window:"city-day"},
+    "1": {bg:"#200a1c",left:"👗",right:"👠",  label:"Fashion — 1F",  window:"interior"},
+    "2": {bg:"#1c0a18",left:"🍕",right:"🧃",  label:"Food Court",    window:"interior"},
+    "3": {bg:"#180816",left:"🎡",right:"🎈",  label:"Fun Zone",      window:"sky"},
+  },
+  lucky: {
+    "1": {bg:"#081208",left:"🍀",right:"🌱", label:"Ground — 1F",    window:"city-day"},
+    "2": {bg:"#081208",left:"💻",right:"🌿", label:"2nd Floor",      window:"city-day"},
+    "3": {bg:"#081208",left:"🪴",right:"📋", label:"3rd Floor",      window:"city-day"},
+    "5": {bg:"#091409",left:"🍀",right:"🎯", label:"5th Floor",      window:"city-day"},
+    "6": {bg:"#091409",left:"💡",right:"🌿", label:"6th Floor",      window:"city-day"},
+    "7": {bg:"#091409",left:"💻",right:"🍀", label:"7th Floor",      window:"city-night"},
+    "8": {bg:"#091409",left:"🪴",right:"🎲", label:"8th Floor",      window:"city-night"},
+    "9": {bg:"#0a1a0a",left:"📊",right:"🌿", label:"9th Floor",      window:"city-night"},
+    "10":{bg:"#0a1a0a",left:"🏆",right:"🍀", label:"10th Floor",     window:"city-night"},
+    "11":{bg:"#0a1a0a",left:"🪟",right:"🌳", label:"11th Floor",     window:"city-night"},
+    "12":{bg:"#0a1a0a",left:"🌿",right:"💫", label:"12th Floor",     window:"city-night"},
+    "15":{bg:"#0b1c0b",left:"🍀",right:"🌇", label:"15th Floor",     window:"panorama"},
+    "16":{bg:"#0b1c0b",left:"⭐",right:"🌿", label:"16th Floor",     window:"panorama"},
+    "17":{bg:"#0b1c0b",left:"🪴",right:"🍀", label:"17th Floor",     window:"panorama"},
+    "18":{bg:"#0c200c",left:"🎰",right:"🌿", label:"18th Floor",     window:"panorama"},
+    "19":{bg:"#0c200c",left:"🏆",right:"🍀", label:"19th Floor",     window:"panorama"},
+    "20":{bg:"#0d220d",left:"🌇",right:"🌟", label:"Lucky Top — 20", window:"panorama"},
+  },
+};
+
+function playBell() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [880, 1108, 1320].forEach((freq, i) => {
+      const osc = ctx.createOscillator(); const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = "sine"; osc.frequency.value = freq;
+      const t = ctx.currentTime + i * 0.12;
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(0.35, t + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.8);
+      osc.start(t); osc.stop(t + 0.9);
+    });
+  } catch {}
+}
+
+function ElevatorInterior({ elevator, onExit }) {
+  const { floors, groundFloor, color, name: elName, icon,
+    panelSide, panelBg, panelBorder, btnRadius, btnGap, btnSize,
+    displayColor, displayBg, doorGrad, doorGradR } = elevator;
+  const gndIdx = floors.indexOf(groundFloor);
+
+  const [dispIdx, setDispIdx]             = useState(gndIdx);
+  const [realIdx, setRealIdx]             = useState(gndIdx);
+  const [doorPhase, setDoorPhase]         = useState("closed");
+  const [lit, setLit]                     = useState(new Set());
+  const [dir, setDir]                     = useState(null);
+  const [engineRunning, setEngineRunning] = useState(false);
+  const [bellRinging, setBellRinging]           = useState(false);
+  const [moving, setMoving]                     = useState(false);
+  const [keycardValidated, setKeycardValidated] = useState(elevator.id !== "hotel");
+
+  const realIdxRef   = useRef(gndIdx);
+  const doorPhaseRef = useRef("closed");
+  const queueRef     = useRef([]);
+  const runRef       = useRef(false);
+  const exitRef      = useRef(false);
+  const movingRef    = useRef(false);
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const setDoor = phase => { doorPhaseRef.current = phase; setDoorPhase(phase); };
+  const setMovingState = val => { movingRef.current = val; setMoving(val); };
+  const openDoors  = async () => { setDoor("opening"); await sleep(900); setDoor("open"); };
+  const closeDoors = async () => { if (doorPhaseRef.current === "closed") return; setDoor("closing"); await sleep(900); setDoor("closed"); };
+  const removeLit  = idx => setLit(prev => { const s = new Set(prev); s.delete(idx); return s; });
+
+  const runEngine = async () => {
+    if (runRef.current) return;
+    runRef.current = true; setEngineRunning(true);
+    let curDir = null;
+    while (runRef.current && queueRef.current.length > 0) {
+      const cur = realIdxRef.current;
+      const above = queueRef.current.filter(f=>f>cur).sort((a,b)=>a-b);
+      const below = queueRef.current.filter(f=>f<cur).sort((a,b)=>b-a);
+      let target;
+      if (curDir !== "down" && above.length > 0) { target = above[0]; curDir = "up"; }
+      else if (below.length > 0)                  { target = below[0]; curDir = "down"; }
+      else if (above.length > 0)                  { target = above[0]; curDir = "up"; }
+      if (target === undefined) break;
+      setDir(curDir);
+      let f = realIdxRef.current;
+      while (f !== target) {
+        setMovingState(true);
+        await sleep(1100);
+        setMovingState(false);
+        if (!runRef.current) { setEngineRunning(false); setDir(null); return; }
+        f += curDir === "up" ? 1 : -1;
+        realIdxRef.current = f; setRealIdx(f); setDispIdx(f);
+        if (f !== target && queueRef.current.includes(f)) {
+          setDir(null);
+          queueRef.current = queueRef.current.filter(x=>x!==f);
+          removeLit(f);
+          await playElevatorDing(); await openDoors();
+          if (exitRef.current && f === gndIdx) { await sleep(800); onExit(); return; }
+          await sleep(2500); await closeDoors();
+          setMovingState(true);
+          setDir(curDir);
+        }
+      }
+      setDir(null);
+      queueRef.current = queueRef.current.filter(x=>x!==target);
+      removeLit(target);
+      await playElevatorDing(); await openDoors();
+      if (exitRef.current && target === gndIdx) { await sleep(800); onExit(); return; }
+      await sleep(2500); await closeDoors();
+      curDir = null;
+    }
+    runRef.current = false; setEngineRunning(false); setMovingState(false); setDir(null);
+  };
+
+  const pressFloor = idx => {
+    if (idx === realIdxRef.current || queueRef.current.includes(idx)) return;
+    if (elevator.id === "hotel" && !keycardValidated) {
+      if (idx !== gndIdx && idx !== floors.indexOf("2")) return;
+    }
+    queueRef.current = [...queueRef.current, idx];
+    setLit(prev => new Set([...prev, idx]));
+    if (!runRef.current) closeDoors().then(() => runEngine());
+  };
+
+  const handleDoorOpen = async () => {
+    if (movingRef.current || doorPhaseRef.current === "open" || doorPhaseRef.current === "opening") return;
+    await openDoors(); await sleep(2500); await closeDoors();
+    if (queueRef.current.length > 0 && !runRef.current) runEngine();
+  };
+  const handleDoorClose = async () => {
+    if (movingRef.current || doorPhaseRef.current === "closed" || doorPhaseRef.current === "closing") return;
+    await closeDoors();
+    if (queueRef.current.length > 0 && !runRef.current) runEngine();
+  };
+  const handleExit = () => {
+    if (realIdxRef.current === gndIdx && !runRef.current) { onExit(); return; }
+    exitRef.current = true;
+    queueRef.current = [gndIdx];
+    setLit(new Set([gndIdx]));
+    if (!runRef.current) closeDoors().then(() => runEngine());
+  };
+  const handleBell = () => {
+    if (bellRinging) return;
+    setBellRinging(true); playBell();
+    setTimeout(() => setBellRinging(false), 3000);
+  };
+
+  useEffect(() => {
+    sleep(400).then(() => openDoors());
+    return () => { runRef.current = false; };
+  }, []);
+
+  const isOpen = doorPhase === "open" || doorPhase === "opening";
+  const scene = FLOOR_SCENES[elevator.id]?.[floors[realIdx]] || { bg:"#111118", left:"", right:"", label:"", window:"none" };
+
+  const windowViews = {
+    "city-day":  "linear-gradient(180deg,#1a5a90 0%,#64a8d4 50%,#b8d8ec 100%)",
+    "city-night":"linear-gradient(180deg,#04060e 0%,#080e1e 60%,#0c1020 100%)",
+    "sky":       "linear-gradient(180deg,#1470b0 0%,#50a0d0 50%,#e8d880 100%)",
+    "interior":  "linear-gradient(180deg,#2a1c08 0%,#3a2c10 60%,#4a3a18 100%)",
+    "panorama":  "linear-gradient(180deg,#020810 0%,#060e20 40%,#0a1430 100%)",
+  };
+
+  const doorArea = (
+    <div style={{flex:1, position:"relative", borderRadius:12, overflow:"hidden", border:`1px solid ${color}22`, minHeight:380}}>
+      {/* Hallway */}
+      <div style={{position:"absolute", inset:0, background:scene.bg, transition:"background 0.8s"}}>
+        {/* Ceiling */}
+        <div style={{position:"absolute", top:0, left:0, right:0, height:32, background:"rgba(0,0,0,0.55)", zIndex:1}}>
+          <div style={{position:"absolute", bottom:4, left:"18%", right:"18%", height:3, background:"rgba(255,255,240,0.18)", borderRadius:2, boxShadow:"0 0 10px rgba(255,255,200,0.25)"}}/>
+        </div>
+        {/* Baseboard */}
+        <div style={{position:"absolute", bottom:62, left:0, right:0, height:5, background:"rgba(0,0,0,0.45)", zIndex:1}}/>
+        {/* Floor shading */}
+        <div style={{position:"absolute", bottom:0, left:0, right:0, height:62, background:"rgba(0,0,0,0.25)", zIndex:1}}/>
+        {/* Floor sign — upper left, wall-mounted */}
+        <div style={{position:"absolute", top:40, left:12, zIndex:2,
+          background:"rgba(0,0,0,0.7)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:4, padding:"4px 10px"}}>
+          <div style={{fontFamily:"'DM Mono',monospace", fontSize:7, color:"#555", letterSpacing:2, marginBottom:1}}>FLOOR</div>
+          <div style={{fontFamily:"'Oswald',sans-serif", fontSize:28, color:"#eaeaea", letterSpacing:4, lineHeight:1}}>{floors[realIdx]}</div>
+          {scene.label && <div style={{fontFamily:"'DM Mono',monospace", fontSize:7, color:"#666", marginTop:2, letterSpacing:0.5}}>{scene.label.toUpperCase()}</div>}
+        </div>
+        {/* Window — upper right */}
+        {scene.window && scene.window !== "none" && (
+          <div style={{position:"absolute", top:40, right:12, width:70, height:78, zIndex:2,
+            background:windowViews[scene.window], border:"4px solid rgba(160,140,100,0.5)", borderRadius:2, overflow:"hidden"}}>
+            {(scene.window === "city-day" || scene.window === "city-night" || scene.window === "panorama") && <>
+              <div style={{position:"absolute", bottom:0, left:0,  width:22, height:44, background:scene.window==="city-day"?"rgba(20,35,55,0.7)":"#040a12"}}/>
+              <div style={{position:"absolute", bottom:0, left:14, width:16, height:28, background:scene.window==="city-day"?"rgba(20,35,55,0.6)":"#050c14"}}/>
+              <div style={{position:"absolute", bottom:0, right:0, width:26, height:38, background:scene.window==="city-day"?"rgba(20,35,55,0.65)":"#040a12"}}/>
+              {scene.window === "city-night" && [
+                {b:28,l:4},{b:20,l:8},{b:35,l:2},{b:22,r:5},{b:14,r:9},{b:30,r:3}
+              ].map((d,i)=>(
+                <div key={i} style={{position:"absolute", bottom:d.b, left:d.l, right:d.r, width:3, height:3, background:"#ffd090", borderRadius:"50%"}}/>
+              ))}
+            </>}
+          </div>
+        )}
+        {/* Scene items */}
+        {scene.left  && <div style={{position:"absolute", bottom:68, left:14,  fontSize:24, zIndex:2}}>{scene.left}</div>}
+        {scene.right && <div style={{position:"absolute", bottom:68, right:14, fontSize:24, zIndex:2}}>{scene.right}</div>}
+      </div>
+      {/* Direction indicator */}
+      <div style={{position:"absolute", top:8, left:"50%", transform:"translateX(-50%)", zIndex:3,
+        background:"rgba(0,0,0,0.8)", borderRadius:6, padding:"3px 12px",
+        fontSize:10, color:dir?color:"#555", fontFamily:"'DM Mono',monospace", letterSpacing:1, whiteSpace:"nowrap"}}>
+        {dir==="up"?"▲ UP":dir==="down"?"▼ DOWN":isOpen?"● OPEN":"● STOP"}
+      </div>
+      {/* Left door */}
+      <div style={{position:"absolute", left:0, top:0, bottom:0, width:"50%", zIndex:2,
+        background:doorGrad, boxShadow:"inset -4px 0 14px rgba(0,0,0,0.6)",
+        transition:"transform 0.9s cubic-bezier(0.4,0,0.2,1)", transform:isOpen?"translateX(-100%)":"translateX(0)"}}>
+        <div style={{position:"absolute", top:"12%", bottom:"12%", left:"14%", right:"14%", border:"1px solid rgba(255,255,255,0.15)", borderRadius:2}}/>
+        <div style={{position:"absolute", top:"30%", bottom:"30%", right:7, width:4, background:"rgba(0,0,0,0.35)", borderRadius:2}}/>
+      </div>
+      {/* Right door */}
+      <div style={{position:"absolute", right:0, top:0, bottom:0, width:"50%", zIndex:2,
+        background:doorGradR, boxShadow:"inset 4px 0 14px rgba(0,0,0,0.6)",
+        transition:"transform 0.9s cubic-bezier(0.4,0,0.2,1)", transform:isOpen?"translateX(100%)":"translateX(0)"}}>
+        <div style={{position:"absolute", top:"12%", bottom:"12%", left:"14%", right:"14%", border:"1px solid rgba(255,255,255,0.15)", borderRadius:2}}/>
+        <div style={{position:"absolute", top:"30%", bottom:"30%", left:7, width:4, background:"rgba(0,0,0,0.35)", borderRadius:2}}/>
+      </div>
+    </div>
+  );
+
+  const panel = (
+    <div style={{width:132, display:"flex", flexDirection:"column", background:panelBg,
+      borderRadius:12, border:`1px solid ${panelBorder}`, overflow:"hidden"}}>
+      {/* Floor display */}
+      <div style={{padding:"10px 8px 7px", borderBottom:`1px solid ${color}22`, flexShrink:0}}>
+        <div style={{fontFamily:"'Courier New',monospace", fontSize:28, color:displayColor,
+          background:displayBg, textAlign:"center", padding:"5px 4px", borderRadius:4,
+          letterSpacing:3, textShadow:`0 0 12px ${displayColor}88`, border:`1px solid ${color}33`}}>
+          {floors[dispIdx]}
+        </div>
+        <div style={{fontSize:8, color:`${color}88`, textAlign:"center", marginTop:4,
+          letterSpacing:1, fontFamily:"'DM Mono',monospace"}}>
+          {dir==="up"?"▲ GOING UP":dir==="down"?"▼ GOING DN":isOpen?"● DOORS OPEN":"● STOPPED"}
+        </div>
+      </div>
+      {/* Floor buttons */}
+      <div style={{flex:1, overflowY:"auto", padding:8, scrollbarWidth:"none", msOverflowStyle:"none"}}>
+        <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:btnGap}}>
+          {[...floors].reverse().map((fl, ri) => {
+            const idx = floors.length - 1 - ri;
+            const isLit = lit.has(idx);
+            const isCur = realIdx === idx;
+            const isRestricted = elevator.id === "hotel" && !keycardValidated && idx !== gndIdx && idx !== floors.indexOf("2");
+            return (
+              <button key={fl} onClick={()=>pressFloor(idx)} disabled={isCur || isRestricted}
+                style={{height:btnSize, width:"100%", padding:0, borderRadius:btnRadius,
+                  background: isLit?color : isCur?`${color}18` : isRestricted?"#0c0c10":"#18182a",
+                  border:`2px solid ${isLit?color : isCur?`${color}55` : isRestricted?"#1a1a20":`${color}22`}`,
+                  color: isLit?"#000" : isCur?color : isRestricted?"#252530":`${color}88`,
+                  fontFamily:"'Oswald',sans-serif", fontSize:12, fontWeight:700,
+                  cursor:isCur||isRestricted?"default":"pointer", transition:"all 0.15s",
+                  boxShadow:isLit?`0 0 10px ${color}88, inset 0 1px 3px rgba(255,255,255,0.25)`:"none"}}>
+                {fl}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      {/* Hotel keycard reader */}
+      {elevator.id === "hotel" && (
+        <div style={{padding:"6px 8px", borderTop:`1px solid ${color}22`, flexShrink:0}}>
+          <div onClick={keycardValidated ? undefined : () => setKeycardValidated(true)}
+            style={{background:"#080604", border:`1px solid ${keycardValidated?"#4cc94c44":"#c9a84c44"}`,
+              borderRadius:6, padding:"6px 8px", cursor:keycardValidated?"default":"pointer",
+              display:"flex", alignItems:"center", gap:6, transition:"all 0.3s"}}>
+            <div style={{fontSize:15}}>🎫</div>
+            <div style={{flex:1, fontFamily:"'DM Mono',monospace"}}>
+              <div style={{fontSize:7, color:keycardValidated?"#4cc94c":"#c9a84c", letterSpacing:1, marginBottom:1}}>
+                {keycardValidated ? "CARD OK" : "TAP CARD"}
+              </div>
+              <div style={{fontSize:7, color:"#666", letterSpacing:0.5}}>
+                {keycardValidated ? "ALL FLOORS" : "L & 2 ONLY"}
+              </div>
+            </div>
+            <div style={{width:9, height:9, borderRadius:"50%", flexShrink:0,
+              background:keycardValidated?"#4cc94c":"#dc2626",
+              boxShadow:keycardValidated?"0 0 7px #4cc94c":"0 0 8px #dc2626"}}/>
+          </div>
+        </div>
+      )}
+      {/* Divider */}
+      <div style={{height:1, background:`${color}22`, margin:"0 8px", flexShrink:0}}/>
+      {/* Special buttons */}
+      <div style={{padding:8, display:"grid", gridTemplateColumns:"1fr 1fr", gap:4, flexShrink:0}}>
+        <button onClick={handleDoorOpen} disabled={moving} title="Open doors"
+          style={{height:34, borderRadius:6, background:"#14142a", border:`1px solid ${color}22`,
+            color:moving?"#1e1e30":`${color}88`, cursor:moving?"not-allowed":"pointer", fontSize:12}}>◄ ►</button>
+        <button onClick={handleDoorClose} disabled={moving} title="Close doors"
+          style={{height:34, borderRadius:6, background:"#14142a", border:`1px solid ${color}22`,
+            color:moving?"#1e1e30":`${color}88`, cursor:moving?"not-allowed":"pointer", fontSize:12}}>► ◄</button>
+        <button onClick={handleBell} title="Emergency bell"
+          style={{height:34, borderRadius:6,
+            background:bellRinging?"#450a0a":"#1a0808",
+            border:`1px solid ${bellRinging?"#dc2626":"#5a1414"}`,
+            color:bellRinging?"#fca5a5":"#dc262688",
+            cursor:"pointer", fontSize:16, transition:"all 0.2s"}}>🔔</button>
+        <button onClick={handleExit}
+          style={{height:34, borderRadius:6,
+            background:realIdx===gndIdx&&!engineRunning?"#450a0a":"#14142a",
+            border:`1px solid ${realIdx===gndIdx&&!engineRunning?"#dc2626":`${color}22`}`,
+            color:realIdx===gndIdx&&!engineRunning?"#fca5a5":"#333",
+            cursor:"pointer", fontSize:9, fontWeight:700, letterSpacing:0.5, transition:"all 0.15s"}}>EXIT</button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{maxWidth:520, margin:"0 auto"}}>
+      <div style={{display:"flex", flexDirection:"row", gap:8, alignItems:"stretch"}}>
+        {panelSide === "right" ? <>{doorArea}{panel}</> : <>{panel}{doorArea}</>}
+      </div>
+    </div>
+  );
+}
+
+function ElevatorSimulator({ onBack }) {
+  const [elevIdx, setElevIdx] = useState(null);
+  if (elevIdx === null) return <ElevatorPicker onSelect={setElevIdx} onBack={onBack}/>;
+  return <ElevatorInterior elevator={ELEVATORS[elevIdx]} onExit={()=>setElevIdx(null)}/>;
+}
+
 // ─── Activity Picker ───────────────────────────────────────────────────────
 const ACTIVITIES = [
   { name: "Metro Soundboard", icon: "🚇", desc: "Explore transit lines & play station announcements", active: true },
-  { name: "Transit Trivia",   icon: "🧠", desc: "Test your knowledge of global metro systems",        active: false },
+  { name: "Elevator Simulator", icon: "🛗", desc: "Ride elevators and press all the buttons",           active: true  },
   { name: "Route Challenge",  icon: "🗺️", desc: "Find the fastest path between two stations",         active: false },
   { name: "Schedule Run",     icon: "⏱️", desc: "Race the clock through a line",                      active: false },
   { name: "Station Builder",  icon: "🏗️", desc: "Design and build your own metro system",             active: false },
@@ -911,8 +1379,8 @@ function ActivityPicker({ onSelect }) {
   const [hovered, setHovered] = useState(null);
   return (
     <div>
-      <div style={{fontFamily:"'Oswald',sans-serif",fontSize:12,color:"#333",marginBottom:14,letterSpacing:3}}>SELECT AN ACTIVITY</div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(170px,1fr))",gap:12}}>
+      <div style={{fontFamily:"'Oswald',sans-serif",fontSize:12,color:"#888",marginBottom:14,letterSpacing:3}}>SELECT AN ACTIVITY</div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:14}}>
         {ACTIVITIES.map((a,i) => (
           <button key={a.name}
             onClick={() => { if (a.active) onSelect(i); }}
@@ -929,14 +1397,14 @@ function ActivityPicker({ onSelect }) {
             onTouchEnd={() => setTimeout(()=>setHovered(null), 1500)}
             style={{
               background:a.active?"linear-gradient(145deg,#111827,#1a2332)":"linear-gradient(145deg,#0d0d14,#111118)",
-              border:`1px solid ${a.active?"#2a2a3a":"#1a1a25"}`,borderRadius:12,padding:"18px 14px",
-              cursor:a.active?"pointer":"default",textAlign:"center",color:a.active?"#fff":"#333",
+              border:`1px solid ${a.active?"#2a2a3a":"#1a1a25"}`,borderRadius:12,padding:"24px 18px",
+              cursor:a.active?"pointer":"default",textAlign:"center",color:a.active?"#fff":"#555",
               transition:"all 0.2s",fontFamily:"inherit",position:"relative",overflow:"hidden",
             }}
           >
-            <div style={{fontSize:32,marginBottom:8,filter:a.active?"none":"grayscale(1) opacity(0.25)"}}>{a.icon}</div>
-            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:14}}>{a.name}</div>
-            <div style={{fontSize:10,color:a.active?"#555":"#2a2a35",marginTop:3}}>{a.active?a.desc:"???"}</div>
+            <div style={{fontSize:42,marginBottom:10,filter:a.active?"none":"grayscale(1) opacity(0.25)"}}>{a.icon}</div>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontSize:16}}>{a.name}</div>
+            <div style={{fontSize:11,color:a.active?"#aaa":"#444",marginTop:4}}>{a.active?a.desc:"???"}</div>
             {!a.active && hovered===i && (
               <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(7,10,16,0.93)",borderRadius:12,fontSize:11,color:"#4cc9f0",padding:14,lineHeight:1.6}}>
                 🚧 Coming soon
@@ -965,11 +1433,13 @@ export default function App() {
 
   const subtitle = activityIdx==null
     ? "Select an activity"
-    : cityIdx==null
-      ? "Metro Soundboard — Select a City"
-      : lineIdx==null
-        ? `${city.name} — Select a Line`
-        : `${city.name} ${line.name}`;
+    : activityIdx===1
+      ? "Elevator Simulator"
+      : cityIdx==null
+        ? "Metro Soundboard — Select a City"
+        : lineIdx==null
+          ? `${city.name} — Select a Line`
+          : `${city.name} ${line.name}`;
 
   return (
     <>
@@ -983,20 +1453,26 @@ export default function App() {
             <span style={{fontSize:26}}>🧸</span>
             <EditableTitle/>
           </div>
-          <div style={{fontSize:11,color:"#333",letterSpacing:1}}>{subtitle}</div>
+          <div style={{fontSize:11,color:"#888",letterSpacing:1}}>{subtitle}</div>
         </div>
 
         {/* Breadcrumb */}
         {activityIdx!=null && (
-          <div style={{padding:"6px 20px",borderBottom:"1px solid #0f0f18",fontSize:10,color:"#333",display:"flex",gap:4,alignItems:"center"}}>
-            <span style={{cursor:"pointer",color:"#4cc9f040"}} onClick={goHome}>Activities</span>
-            <span>›</span>
-            <span style={cityIdx==null?{color:"#4cc9f0"}:{cursor:"pointer",color:"#4cc9f040"}} onClick={cityIdx!=null?()=>{setCityIdx(null);setLineIdx(null);}:undefined}>Metro Soundboard</span>
-            {cityIdx!=null && <>
+          <div style={{padding:"6px 20px",borderBottom:"1px solid #0f0f18",fontSize:10,color:"#666",display:"flex",gap:4,alignItems:"center"}}>
+            <span style={{cursor:"pointer",color:"#4cc9f070"}} onClick={goHome}>Activities</span>
+            {activityIdx===1 && <>
               <span>›</span>
-              <span style={lineIdx==null?{color:"#4cc9f0"}:{cursor:"pointer",color:"#4cc9f040"}} onClick={lineIdx!=null?()=>setLineIdx(null):undefined}>{city.name}</span>
+              <span style={{color:"#4cc9f0"}}>Elevator Simulator</span>
             </>}
-            {lineIdx!=null && <><span>›</span><span style={{color:"#4cc9f0"}}>{line.name}</span></>}
+            {activityIdx===0 && <>
+              <span>›</span>
+              <span style={cityIdx==null?{color:"#4cc9f0"}:{cursor:"pointer",color:"#4cc9f070"}} onClick={cityIdx!=null?()=>{setCityIdx(null);setLineIdx(null);}:undefined}>Metro Soundboard</span>
+              {cityIdx!=null && <>
+                <span>›</span>
+                <span style={lineIdx==null?{color:"#4cc9f0"}:{cursor:"pointer",color:"#4cc9f070"}} onClick={lineIdx!=null?()=>setLineIdx(null):undefined}>{city.name}</span>
+              </>}
+              {lineIdx!=null && <><span>›</span><span style={{color:"#4cc9f0"}}>{line.name}</span></>}
+            </>}
           </div>
         )}
 
@@ -1006,12 +1482,14 @@ export default function App() {
           {activityIdx===0 && cityIdx==null && <CityPicker onSelect={i=>{setCityIdx(i);setLineIdx(null);}}/>}
           {activityIdx===0 && cityIdx!=null && lineIdx==null && <LinePicker city={city} onSelect={setLineIdx} onBack={()=>{setCityIdx(null);setLineIdx(null);}}/>}
           {activityIdx===0 && lineData && <StationView key={`${cityIdx}-${lineIdx}`} lineData={lineData} cityLines={city.lines} onBack={()=>{setLineIdx(null);setFlyStation(null);}} initialStationIdx={flyStation} onFly={handleFly} onTransfer={handleTransfer}/>}
+          {activityIdx===1 && <ElevatorSimulator onBack={goHome}/>}
         </div>
 
         {/* Footer */}
-        <div style={{textAlign:"center",padding:"16px 20px",fontSize:10,color:"#252535",borderTop:"1px solid #0f0f18",marginTop:20}}>
+        <div style={{textAlign:"center",padding:"16px 20px",fontSize:10,color:"#585870",borderTop:"1px solid #0f0f18",marginTop:20}}>
           Compiled on {__BUILD_TIME__}
         </div>
+
       </div>
     </>
   );
